@@ -544,7 +544,6 @@ int main(int argc, const char* argv[])
             cout << "Extracting flow from [" << input_name << "] using CPU." << endl;
         }
         
-    Ptr<DualTVL1OpticalFlow> tvl1 = createOptFlow_DualTVL1();
         VideoCapture cap(input_name);
         if(cap.isOpened())
         {
@@ -587,10 +586,7 @@ int main(int argc, const char* argv[])
                     // Prepare receiving variable
                     Mat flow = Mat(frame0.size(), CV_32FC2);
 
-                    // Perform optical flow
-                    tvl1->calc(frame0, frame1, flow);
-
-                    // calcOpticalFlowFarneback(frame0, frame1, flow, 0.5, 3, 3, 3, 5, 1.1, 0);  
+                    calcOpticalFlowFarneback(frame0, frame1, flow, 0.5, 3, 3, 3, 5, 1.1, 0);  
                     vector<double> mm_frame = writeFlowJpg(name, flow);
                     
                     if(visualize)
