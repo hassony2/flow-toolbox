@@ -1,22 +1,4 @@
-#include <iostream>
-#include <fstream>
-#include "opencv2/core.hpp"
-#include "opencv2/core/utility.hpp"
-#include "opencv2/highgui.hpp"
-#include "opencv2/cudaoptflow.hpp"
-#include "opencv2/cudaarithm.hpp"
-#include "opencv2/imgcodecs.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/cudacodec.hpp"
-#include <getopt.h>
-#include <stdio.h>
-#include "opencv2/video/tracking.hpp"
-#include <dirent.h>
-
-using namespace cv;
-using namespace cv::cuda;
-using namespace std;
-
+#include "flow_video.hpp"
 
 //Mostly from https://github.com/opencv/opencv/blob/master/samples/gpu/optical_flow.cpp
 
@@ -353,9 +335,9 @@ static vector<double> writeFlowJpg(string name, const Mat& d_flow)
     return mm_frame;
 }
 
-int extractFlows(const string input_name, const string out_dir, const string proc_type,
-                 string output_mm, const int interval_beg, int interval_end,
-                 const bool visualize, const bool silence)
+int extractGPUFlows(const string input_name, const string out_dir, const string proc_type,
+                    string output_mm, const int interval_beg, int interval_end,
+                    const bool visualize, const bool silence)
 {
     // Declare useful variables
     Mat frame0, frame1;
@@ -363,270 +345,199 @@ int extractFlows(const string input_name, const string out_dir, const string pro
     vector<vector<double> > mm;
     
     // VIDEO INPUT
-    if((proc_type.compare("tvl1") == 0) || (proc_type.compare("brox") == 0))
+    if (!silence)
     {
-        if (!silence)
-        {
-            cout << "Extracting flow from [" << input_name << "] using GPU." << endl;
-            cout << "Initialization (this may take awhile)..." << endl;
-        }
-        GpuMat temp = GpuMat(3, 3, CV_32FC1);
-        // Declare gpu mats
-        GpuMat g_frame0, g_frame1;
-        GpuMat gf_frame0, gf_frame1;
-        GpuMat g_flow;
-        // Create optical flow object
-        Ptr<cuda::BroxOpticalFlow> brox = cuda::BroxOpticalFlow::create(0.197f, 50.0f, 0.8f, 10, 77, 10);
-        Ptr<cuda::OpticalFlowDual_TVL1> tvl1 = cuda::OpticalFlowDual_TVL1::create();
-
-        // Open video file
-        VideoCapture cap(input_name);
-        double cap_fourcc = cap.get(CV_CAP_PROP_FOURCC);
-        if(cap.isOpened())
-        {
-            int noFrames = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
-            if(interval_end == -1)
-            {
-                interval_end = noFrames;
-            }
-            if(cap_fourcc == 0) // image sequence
-            {
-                output_mm = out_dir + "minmax.txt";
-            }
-            if(!silence)
-            {
-                cout << "Total number of frames: " << noFrames << endl;
-                cout << "Extracting interval [" << interval_beg  << "-" << interval_end << "]" << endl;
-            }
-            cap.set(CV_CAP_PROP_POS_FRAMES, interval_beg-1); // causes problem for image sequence!
- 
-            // Read first frame
-            if(noFrames>0)
-            {
-                bool bSuccess = cap.read(frame0);
-                if(!bSuccess)   { cout << "Cannot read frame!" << endl;   }
-                else            { cvtColor(frame0, frame0, CV_BGR2GRAY);  }
-            }
-            // For each frame in video (starting from the 2nd)
-            for(int k=1; k<interval_end-interval_beg+1; k++)
-            {
-                sprintf(name, "%s%05d", out_dir.c_str(), k+interval_beg-1);
-                
-                bool bSuccess = cap.read(frame1);
-                //imshow("Frame", frame1);
-                //waitKey();
-                if(!bSuccess)
-                {
-                    cout << "Cannot read frame " << name << "!" << endl;
-                    return 1;
-                }
-                else
-                {
-                    if(!silence)
-                    {
-                        cout << "Outputting " << name << endl;
-                    }
-                    cvtColor(frame1, frame1, CV_BGR2GRAY);
-
-                    // Upload images to GPU
-                    g_frame0 = GpuMat(frame0); // Has an image in format CV_32FC1
-                    g_frame1 = GpuMat(frame1); // Has an image in format CV_32FC1
-
-                    // Convert to float
-                    g_frame0.convertTo(gf_frame0, CV_32F, 1.0/255.0);
-                    g_frame1.convertTo(gf_frame1, CV_32F, 1.0/255.0);
-
-                    // Prepare receiving variable
-                    g_flow = GpuMat(frame0.size(), CV_32FC2);
- 
-                    // Perform Brox optical flow
-                    if(proc_type.compare("tvl1") == 0)
-                    {
-                        tvl1->calc(gf_frame0, gf_frame1, g_flow);
-                    }
-                    else
-                    {
-                        brox->calc(gf_frame0, gf_frame1, g_flow);
-                    }
-                    vector<double> mm_frame = writeFlowJpg(name, g_flow);
-                    if(visualize)
-                    {
-                        showFlow("Flow", g_flow);
-                        waitKey(30);
-                    }
-                
-                    mm.push_back(mm_frame);
-                    frame1.copyTo(frame0);
-                }
-            }
-            if (!silence)
-            {
-                cout << "Outputting " << output_mm << endl;
-            }
-            writeMM(output_mm, mm);
-            cap.release();
-        }
-        else
-        {
-            cout << "Video " << input_name << " cannot be opened." << endl;
-            return 1;
-        }
+        cout << "Extracting flow from [" << input_name << "] using GPU." << endl;
+        cout << "Initialization (this may take awhile)..." << endl;
     }
-    else if(proc_type.compare("farn") == 0)
+    GpuMat temp = GpuMat(3, 3, CV_32FC1);
+    // Declare gpu mats
+    GpuMat g_frame0, g_frame1;
+    GpuMat gf_frame0, gf_frame1;
+    GpuMat g_flow;
+    // Create optical flow object
+    Ptr<cuda::BroxOpticalFlow> brox = cuda::BroxOpticalFlow::create(0.197f, 50.0f, 0.8f, 10, 77, 10);
+    Ptr<cuda::OpticalFlowDual_TVL1> tvl1 = cuda::OpticalFlowDual_TVL1::create();
+
+    // Open video file
+    VideoCapture cap(input_name);
+    double cap_fourcc = cap.get(CV_CAP_PROP_FOURCC);
+    if(cap.isOpened())
     {
+        int noFrames = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
+        if(interval_end == -1)
+        {
+            interval_end = noFrames;
+        }
+        if(cap_fourcc == 0) // image sequence
+        {
+            output_mm = out_dir + "minmax.txt";
+        }
         if(!silence)
         {
-            cout << "Extracting flow from [" << input_name << "] using CPU." << endl;
+            cout << "Total number of frames: " << noFrames << endl;
+            cout << "Extracting interval [" << interval_beg  << "-" << interval_end << "]" << endl;
         }
-        
-        VideoCapture cap(input_name);
-        if(cap.isOpened())
-        {
-            int noFrames = cap.get(CV_CAP_PROP_FRAME_COUNT);
-            if(interval_end == -1)
-            {
-                interval_end = noFrames;
-            }
-            if(!silence)
-            {
-                cout << "Total number of frames: " << noFrames << endl;
-                cout << "Extracting interval [" << interval_beg  << "-" << interval_end << "]" << endl;
-            }
-            cap.set(CV_CAP_PROP_POS_FRAMES, interval_beg-1);
-            // Read first frame
-            if(noFrames>0)
-            {
-                bool bSuccess = cap.read(frame0);
-                if(!bSuccess)   { cout << "Cannot read frame!" << endl;   }
-                else            { cvtColor(frame0, frame0, CV_BGR2GRAY);        }
-            }
-            // For each frame in video (starting from the 2nd)
-            for(int k=1; k<interval_end-interval_beg+1; k++)
-            {
-                sprintf(name, "%s%05d", out_dir.c_str(), k+interval_beg-1);
-                bool bSuccess = cap.read(frame1);
-                if(!bSuccess)   {
-                    cout << "Cannot read frame " << name << "!" << endl;
-                    return 1;
-                }
+        cap.set(CV_CAP_PROP_POS_FRAMES, interval_beg-1); // causes problem for image sequence!
 
+        // Read first frame
+        if(noFrames>0)
+        {
+            bool bSuccess = cap.read(frame0);
+            if(!bSuccess)   { cout << "Cannot read frame!" << endl;   }
+            else            { cvtColor(frame0, frame0, CV_BGR2GRAY);  }
+        }
+        // For each frame in video (starting from the 2nd)
+        for(int k=1; k<interval_end-interval_beg+1; k++)
+        {
+            sprintf(name, "%s%05d", out_dir.c_str(), k+interval_beg-1);
+            
+            bool bSuccess = cap.read(frame1);
+            //imshow("Frame", frame1);
+            //waitKey();
+            if(!bSuccess)
+            {
+                cout << "Cannot read frame " << name << "!" << endl;
+                return 1;
+            }
+            else
+            {
+                if(!silence)
+                {
+                    cout << "Outputting " << name << endl;
+                }
+                cvtColor(frame1, frame1, CV_BGR2GRAY);
+
+                // Upload images to GPU
+                g_frame0 = GpuMat(frame0); // Has an image in format CV_32FC1
+                g_frame1 = GpuMat(frame1); // Has an image in format CV_32FC1
+
+                // Convert to float
+                g_frame0.convertTo(gf_frame0, CV_32F, 1.0/255.0);
+                g_frame1.convertTo(gf_frame1, CV_32F, 1.0/255.0);
+
+                // Prepare receiving variable
+                g_flow = GpuMat(frame0.size(), CV_32FC2);
+
+                // Perform Brox optical flow
+                if(proc_type.compare("tvl1") == 0)
+                {
+                    tvl1->calc(gf_frame0, gf_frame1, g_flow);
+                }
                 else
                 {
-                    if(!silence)
-                    {
-                        cout << "Outputting " << name << endl;
-                    }
-                    cvtColor(frame1, frame1, CV_BGR2GRAY);
-
-                    // Convert to float
-                    frame0.convertTo(frame0, CV_32F, 1.0/255.0);
-                    frame1.convertTo(frame1, CV_32F, 1.0/255.0);
-
-                    // Prepare receiving variable
-                    Mat flow = Mat(frame0.size(), CV_32FC2);
-
-                    calcOpticalFlowFarneback(frame0, frame1, flow, 0.5, 3, 3, 3, 5, 1.1, 0);  
-                    vector<double> mm_frame = writeFlowJpg(name, flow);
-                    
-                    if(visualize)
-                    {
-                        showFlow("Flow", flow);
-                        waitKey(30);
-                    }
-
-                    mm.push_back(mm_frame);
-                    frame1.copyTo(frame0);
-
+                    brox->calc(gf_frame0, gf_frame1, g_flow);
                 }
+                vector<double> mm_frame = writeFlowJpg(name, g_flow);
+                if(visualize)
+                {
+                    showFlow("Flow", g_flow);
+                    waitKey(30);
+                }
+            
+                mm.push_back(mm_frame);
+                frame1.copyTo(frame0);
             }
-            if(!silence)
-            {
-                cout << "Outputting " << output_mm << endl;
-            }
-            writeMM(output_mm, mm);
-            cap.release();
         }
-        else
+        if (!silence)
         {
-            cout << "Video " << input_name << " cannot be opened." << endl;
-            return 1;
+            cout << "Outputting " << output_mm << endl;
         }
-    }
-}
-
-int main(int argc, const char* argv[])
-{
-    // Parse parameters and options
-    string input_name;              // name of the video file or directory of the image sequence
-    string proc_type    = "brox";    // "farn", "brox" or "tvl1"
-    string out_dir       = "./";     // directory for the output files
-    int interval_beg      = 1;           // 1 for the beginning
-    int interval_end    = -1;       // End (-1 for uninitialized, default set below)
-    bool visualize      = 0;        // boolean for flow visualization
-    bool silence        = 1;         // Remove logs
-    string output_mm    = "";       // name of the minmax.txt file (default set below)
-
-    const char* usage = "[-h] [-p <proc_type>] [-o <out_dir>] [-b <interval_beg>] [-e <interval_end>] [-v <visualize>] [-m <output_mm>] <input_name>";
-    string help  = "\n\n\nUSAGE:\n\t"+ string(usage) +"\n\n"
-        "INPUT:\n"
-        "\t<input_name>\t \t: Path to video file or image directory (e.g. img_%04d.jpg)\n"
-        "OPTIONS:\n"
-        "-h \t \t \t \t: Display this help message\n"
-        "-p \t<proc_type>  \t[farn] \t: Processor type (farn, brox or tvl1)\n"
-        "-o \t<out_dir> \t[./] \t: Output folder containing flow images and minmax.txt\n"
-        "-b \t<interval_beg> \t[1] \t: Frame index to start (one-based indexing)\n"
-        "-e \t<interval_end> \t[last] \t: Frame index to stop\n"
-        "-v \t<visualize> \t[0] \t: Boolean for visualization of the optical flow\n"
-        "-s \t<silence> \t[0] \t: Boolean for removing logs\n"
-        "-m \t<output_mm> \t[<out_dir>/<basename(input_name)>_minmax.txt] \t: Name of the minmax file.\n"
-        "\n"
-        "Notes:\n*GPU method: Brox, CPU method: Farneback.\n"
-        "*Only <imagename>_%0xd.jpg (x any digit) is supported for image sequence input.\n\n\n";
-// brox cpu
-//fourcc check for image sequence detection, but not sure
-    int option_char;
-    while ((option_char = getopt(argc, (char **)argv, "hp:o:b:e:m:s:v:?")) != EOF)
-    {
-        switch (option_char)
-        {  
-            case 'p': proc_type      = optarg;       break;
-            case 'o': out_dir        = optarg;       break;
-            case 'b': interval_beg   = atoi(optarg); break;
-            case 'e': interval_end   = atoi(optarg); break;
-            case 'v': visualize      = atoi(optarg); break;
-            case 's': silence        = atoi(optarg); break;
-            case 'm': output_mm      = optarg;       break;
-            case 'h': cout << help; return 0;        break;
-            case '?': fprintf(stderr, "Unknown option.\nUSAGE: %s %s\n", argv[0], usage); return -1; break;
-        }
-    }
-    // Retrieve the (non-option) argument
-    if ( (argc <= 1) || (argv[argc-1] == NULL) || (argv[argc-1][0] == '-') )
-    {
-        fprintf(stderr, "No input name provided.\nUSAGE: %s %s\n", argv[0], usage);
-        return -1;
+        writeMM(output_mm, mm);
+        cap.release();
     }
     else
     {
-        input_name = argv[argc-1];
+        cout << "Video " << input_name << " cannot be opened." << endl;
+        return 1;
     }
-
-    if(out_dir.compare("") != 0) 
-    {
-        if(out_dir[out_dir.length()-1]!= '/') { out_dir = out_dir + "/"; } //and if last char not /
-        char cmd[200];
-        sprintf(cmd, "mkdir -p %s", out_dir.c_str());
-        system(cmd);
-    }
-    if(output_mm.compare("") == 0)
-    {
-        output_mm = out_dir + "minmax.txt";
-    }
-    int extract_success;
-    extract_success = extractFlows(input_name, out_dir,
-                                   proc_type, output_mm,
-                                   interval_beg, interval_end,
-                                   visualize, silence);
-
-    return extract_success;
 }
+
+int extractCPUFlows(const string input_name, const string out_dir, const string proc_type,
+                    string output_mm, const int interval_beg, int interval_end,
+                    const bool visualize, const bool silence)
+{
+    // Declare useful variables
+    Mat frame0, frame1;
+    char name[200];
+    vector<vector<double> > mm;
+    
+    if(!silence)
+    {
+        cout << "Extracting flow from [" << input_name << "] using CPU." << endl;
+    }
+    
+    VideoCapture cap(input_name);
+    if(cap.isOpened())
+    {
+        int noFrames = cap.get(CV_CAP_PROP_FRAME_COUNT);
+        if(interval_end == -1)
+        {
+            interval_end = noFrames;
+        }
+        if(!silence)
+        {
+            cout << "Total number of frames: " << noFrames << endl;
+            cout << "Extracting interval [" << interval_beg  << "-" << interval_end << "]" << endl;
+        }
+        cap.set(CV_CAP_PROP_POS_FRAMES, interval_beg-1);
+        // Read first frame
+        if(noFrames>0)
+        {
+            bool bSuccess = cap.read(frame0);
+            if(!bSuccess)   { cout << "Cannot read frame!" << endl;   }
+            else            { cvtColor(frame0, frame0, CV_BGR2GRAY);        }
+        }
+        // For each frame in video (starting from the 2nd)
+        for(int k=1; k<interval_end-interval_beg+1; k++)
+        {
+            sprintf(name, "%s%05d", out_dir.c_str(), k+interval_beg-1);
+            bool bSuccess = cap.read(frame1);
+            if(!bSuccess)   {
+                cout << "Cannot read frame " << name << "!" << endl;
+                return 1;
+            }
+
+            else
+            {
+                if(!silence)
+                {
+                    cout << "Outputting " << name << endl;
+                }
+                cvtColor(frame1, frame1, CV_BGR2GRAY);
+
+                // Convert to float
+                frame0.convertTo(frame0, CV_32F, 1.0/255.0);
+                frame1.convertTo(frame1, CV_32F, 1.0/255.0);
+
+                // Prepare receiving variable
+                Mat flow = Mat(frame0.size(), CV_32FC2);
+
+                calcOpticalFlowFarneback(frame0, frame1, flow, 0.5, 3, 3, 3, 5, 1.1, 0);  
+                vector<double> mm_frame = writeFlowJpg(name, flow);
+                
+                if(visualize)
+                {
+                    showFlow("Flow", flow);
+                    waitKey(30);
+                }
+
+                mm.push_back(mm_frame);
+                frame1.copyTo(frame0);
+
+            }
+        }
+        if(!silence)
+        {
+            cout << "Outputting " << output_mm << endl;
+        }
+        writeMM(output_mm, mm);
+        cap.release();
+    }
+    else
+    {
+        cout << "Video " << input_name << " cannot be opened." << endl;
+        return 1;
+    }
+}
+
