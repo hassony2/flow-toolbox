@@ -390,7 +390,10 @@ int extractGPUFlows(const string input_name, const string img_format, const stri
         // For each frame in video (starting from the 2nd)
         for(int k=1; k<interval_end-interval_beg+1; k++)
         {
-            sprintf(name, (string("%s") + img_format).c_str(), out_dir.c_str(), k+interval_beg-1);
+	    // Remove extension
+	    size_t ext_idx = img_format.find_last_of(".");
+            string img_prefix = img_format.substr(0, ext_idx);
+            sprintf(name, (string("%s") + img_prefix).c_str(), out_dir.c_str(), k+interval_beg-1);
             
             bool bSuccess = cap.read(frame1);
             //imshow("Frame", frame1);
@@ -492,7 +495,9 @@ int extractCPUFlows(const string input_name, const string img_format,
         // For each frame in video (starting from the 2nd)
         for(int k=1; k<interval_end-interval_beg+1; k++)
         {
-            sprintf(name, (string("%s") + img_format).c_str(), out_dir.c_str(), k+interval_beg-1);
+	    size_t ext_idx = img_format.find_last_of(".");
+            string img_prefix = img_format.substr(0, ext_idx);
+            sprintf(name, (string("%s") + img_prefix).c_str(), out_dir.c_str(), k+interval_beg-1);
             bool bSuccess = cap.read(frame1);
             if(!bSuccess)   {
                 cout << "Cannot read frame " << name << "!" << endl;
