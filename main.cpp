@@ -59,9 +59,6 @@ int main(int argc, const char* argv[])
     {
         input_name = argv[argc-1];
     }
-    vector<string> files;
-    getdir(input_name, files);
-    cout << "Extracting " <<  files.size() << " videos" << endl;
 
     if(out_dir.compare("") != 0) 
     {
@@ -76,6 +73,9 @@ int main(int argc, const char* argv[])
     }
     if(nested == 1)
     {
+        vector<string> files;
+        getdir(input_name, files);
+        cout << "Extracting " <<  files.size() << " videos" << endl;
         if(input_name[input_name.length()-1]!= '/') { input_name = input_name + "/"; } //and if last char not /
         // Go through inner folders
         for(int i=0; i < files.size(); i++)

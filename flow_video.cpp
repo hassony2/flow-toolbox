@@ -378,7 +378,7 @@ int extractGPUFlows(const string input_name, const string out_dir, const string 
             cout << "Total number of frames: " << noFrames << endl;
             cout << "Extracting interval [" << interval_beg  << "-" << interval_end << "]" << endl;
         }
-        cap.set(CV_CAP_PROP_POS_FRAMES, interval_beg-1); // causes problem for image sequence!
+        // cap.set(CV_CAP_PROP_POS_FRAMES, interval_beg-1); // causes problem for image sequence!
 
         // Read first frame
         if(noFrames>0)
@@ -390,7 +390,7 @@ int extractGPUFlows(const string input_name, const string out_dir, const string 
         // For each frame in video (starting from the 2nd)
         for(int k=1; k<interval_end-interval_beg+1; k++)
         {
-            sprintf(name, "%s%05d", out_dir.c_str(), k+interval_beg-1);
+            sprintf(name, "%s%5d", out_dir.c_str(), k+interval_beg-1);
             
             bool bSuccess = cap.read(frame1);
             //imshow("Frame", frame1);
@@ -480,7 +480,7 @@ int extractCPUFlows(const string input_name, const string out_dir, const string 
             cout << "Total number of frames: " << noFrames << endl;
             cout << "Extracting interval [" << interval_beg  << "-" << interval_end << "]" << endl;
         }
-        cap.set(CV_CAP_PROP_POS_FRAMES, interval_beg-1);
+        // cap.set(CV_CAP_PROP_POS_FRAMES, interval_beg-1);
         // Read first frame
         if(noFrames>0)
         {
