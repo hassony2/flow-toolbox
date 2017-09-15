@@ -335,7 +335,7 @@ static vector<double> writeFlowJpg(string name, const Mat& d_flow)
     return mm_frame;
 }
 
-int extractGPUFlows(const string input_name, const string out_dir, const string proc_type,
+int extractGPUFlows(const string input_name, const string img_format, const string out_dir, const string proc_type,
                     string output_mm, const int interval_beg, int interval_end,
                     const bool visualize, const bool silence)
 {
@@ -390,7 +390,7 @@ int extractGPUFlows(const string input_name, const string out_dir, const string 
         // For each frame in video (starting from the 2nd)
         for(int k=1; k<interval_end-interval_beg+1; k++)
         {
-            sprintf(name, "%s%5d", out_dir.c_str(), k+interval_beg-1);
+            sprintf(name, (string("%s") + img_format).c_str(), out_dir.c_str(), k+interval_beg-1);
             
             bool bSuccess = cap.read(frame1);
             //imshow("Frame", frame1);
@@ -453,7 +453,8 @@ int extractGPUFlows(const string input_name, const string out_dir, const string 
     }
 }
 
-int extractCPUFlows(const string input_name, const string out_dir, const string proc_type,
+int extractCPUFlows(const string input_name, const string img_format,
+		    const string out_dir, const string proc_type,
                     string output_mm, const int interval_beg, int interval_end,
                     const bool visualize, const bool silence)
 {
@@ -491,7 +492,7 @@ int extractCPUFlows(const string input_name, const string out_dir, const string 
         // For each frame in video (starting from the 2nd)
         for(int k=1; k<interval_end-interval_beg+1; k++)
         {
-            sprintf(name, "%s%05d", out_dir.c_str(), k+interval_beg-1);
+            sprintf(name, (string("%s") + img_format).c_str(), out_dir.c_str(), k+interval_beg-1);
             bool bSuccess = cap.read(frame1);
             if(!bSuccess)   {
                 cout << "Cannot read frame " << name << "!" << endl;
