@@ -3,21 +3,21 @@
 int main(int argc, const char* argv[])
 {
     // Parse parameters and options
-    string input_name;              // name of the video file or directory of the image sequence
-    string proc_type    = "brox";    // "farn", "brox" or "tvl1"
+    string input_dir;              // name of the video file or directory of the image sequence
+    string proc_type    = "farn";    // "farn", "brox" or "tvl1"
     string out_dir       = "./";     // directory for the output files
     int interval_beg      = 1;           // 1 for the beginning
     int interval_end    = -1;       // End (-1 for uninitialized, default set below)
     bool nested         = 0;        // boolean looping through nested dirs
     string img_format       = "%05d.jpg";    // "farn", "brox" or "tvl1"
     bool visualize      = 0;        // boolean for flow visualization
-    bool silence        = 1;         // Remove logs
+    bool silence        = 0;         // Remove logs
     string output_mm    = "";       // name of the minmax.txt file (default set below)
 
-    const char* usage = "[-h] [-p <proc_type>] [-o <out_dir>] [-b <interval_beg>] [-e <interval_end>] [-v <visualize>] [-m <output_mm>] <input_name>";
+    const char* usage = "[-h] [-p <proc_type>] [-o <out_dir>] [-b <interval_beg>] [-e <interval_end>] [-v <visualize>] [-m <output_mm>] <input_dir>";
     string help  = "\n\n\nUSAGE:\n\t"+ string(usage) +"\n\n"
         "INPUT:\n"
-        "\t<input_name>\t \t: Path to video file or image directory (e.g. img_%04d.jpg)\n"
+        "\t<input_dir>\t \t: Path to video file or image directory \n"
         "OPTIONS:\n"
         "-h \t \t \t \t: Display this help message\n"
         "-p \t<proc_type>  \t[farn] \t: Processor type (farn, brox or tvl1)\n"
@@ -26,9 +26,9 @@ int main(int argc, const char* argv[])
         "-e \t<interval_end> \t[last] \t: Frame index to stop\n"
         "-v \t<visualize> \t[0] \t: Boolean for visualization of the optical flow\n"
         "-s \t<silence> \t[0] \t: Boolean for removing logs\n"
-        "-m \t<output_mm> \t[<out_dir>/<basename(input_name)>_minmax.txt] \t: Name of the minmax file.\n"
-        "-n \t<nested> \t [0] \t whether to go through first level nested dirs \t If set to true, input_name should be the path to a folder \n"
-        "-f \t<img_format> \t [%05d.jpg] \t image format of input\n"
+        "-m \t<output_mm> \t[<out_dir>/<basename(input_dir)>_minmax.txt] \t: Name of the minmax file.\n"
+        "-n \t<nested> \t [0] \t whether to go through first level nested dirs \n"
+        "-f \t<img_format> \t [%05d.jpg|video.avi] \t image format of input\n"
         "\n"
         "Notes:\n*GPU method: Brox, CPU method: Farneback.\n"
         "*Only <imagename>_%0xd.jpg (x any digit) is supported for image sequence input.\n\n\n";
@@ -60,7 +60,7 @@ int main(int argc, const char* argv[])
     }
     else
     {
-        input_name = argv[argc-1];
+        input_dir = argv[argc-1];
     }
 
     if(out_dir.compare("") != 0) 
@@ -74,26 +74,29 @@ int main(int argc, const char* argv[])
     {
         output_mm = out_dir + "minmax.txt";
     }
+    // Ensure that folder name ends with '/'
+    if(input_dir[input_dir.length()-1]!= '/')
+    {
+	    input_dir = input_dir + "/"; 
+    } //and if last char not /
     if(nested == 1)
     {
         vector<string> files;
-        getdir(input_name, files);
-	cout << input_name << endl;
+        getdir(input_dir, files);
+	cout << input_dir << endl;
         cout << "Extracting " <<  files.size() << " videos" << endl;
-        if(input_name[input_name.length()-1]!= '/') { input_name = input_name + "/"; } //and if last char not /
         // Go through inner folders
         for(int i=0; i < files.size(); i++)
         {
             cout << "Extracting file " << i<< ": " << files[i] << endl;
             string video = files[i];
-            string video_input = input_name + video + '/' + img_format;
             string video_output = out_dir + video + '/';
             char cmd[300];
             sprintf(cmd, "mkdir -p %s", video_output.c_str());
             system(cmd);
             if((proc_type.compare("tvl1") == 0) || (proc_type.compare("brox") == 0))
             {
-                int extract_success = extractGPUFlows(video_input, img_format,
+                int extract_success = extractGPUFlows(input_dir, img_format,
 						      video_output,
                                                   proc_type, output_mm,
                                                   interval_beg, interval_end,
@@ -106,7 +109,7 @@ int main(int argc, const char* argv[])
             }
             else if(proc_type.compare("farn") == 0)
             {
-                int extract_success = extractCPUFlows(video_input, img_format,
+                int extract_success = extractCPUFlows(input_dir, img_format,
 			                        	video_output,
                                                   proc_type, output_mm,
                                                   interval_beg, interval_end,
@@ -128,26 +131,26 @@ int main(int argc, const char* argv[])
     {
         if((proc_type.compare("tvl1") == 0) || (proc_type.compare("brox") == 0))
         {
-            int extract_success = extractGPUFlows(input_name, img_format, out_dir,
+            int extract_success = extractGPUFlows(input_dir, img_format, out_dir,
                                               proc_type, output_mm,
                                               interval_beg, interval_end,
                                               visualize, silence);
             if(extract_success == 1)
             {
-                cout << "Failed extracting flow from " << input_name << endl;
+                cout << "Failed extracting flow from " << input_dir << endl;
                 return 1;
             }
         }
         else if(proc_type.compare("farn") == 0)
         {
-            int extract_success = extractCPUFlows(input_name, img_format,
+            int extract_success = extractCPUFlows(input_dir, img_format,
 			                          out_dir,
                                                   proc_type, output_mm,
                                                   interval_beg, interval_end,
                                                   visualize, silence);
             if(extract_success == 1)
             {
-                cout << "Failed extracting flow from " << input_name << endl;
+                cout << "Failed extracting flow from " << input_dir << endl;
                 return 1;
             }
         }

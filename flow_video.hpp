@@ -25,12 +25,12 @@ using namespace std;
 
 int getdir(string dir, vector<string> &files);
 
-int extractGPUFlows(const string input_name, const string img_format,
+int extractGPUFlows(const string input_dir, const string img_format,
 		    const string out_dir, const string proc_type,
                     string output_mm, const int interval_beg, int interval_end,
                     const bool visualize, const bool silence);
 
-int extractCPUFlows(const string input_name, const string out_dir,
+int extractCPUFlows(const string input_dir, const string out_dir,
 	            const string img_format, const string proc_type,
                     string output_mm, const int interval_beg, int interval_end,
                     const bool visualize, const bool silence);

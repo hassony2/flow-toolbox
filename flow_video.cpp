@@ -335,7 +335,7 @@ static vector<double> writeFlowJpg(string name, const Mat& d_flow)
     return mm_frame;
 }
 
-int extractGPUFlows(const string input_name, const string img_format, const string out_dir, const string proc_type,
+int extractGPUFlows(const string input_dir, const string img_format, const string out_dir, const string proc_type,
                     string output_mm, const int interval_beg, int interval_end,
                     const bool visualize, const bool silence)
 {
@@ -347,7 +347,7 @@ int extractGPUFlows(const string input_name, const string img_format, const stri
     // VIDEO INPUT
     if (!silence)
     {
-        cout << "Extracting flow from [" << input_name << "] using GPU." << endl;
+        cout << "Extracting flow from [" << input_dir << "] using GPU." << endl;
         cout << "Initialization (this may take awhile)..." << endl;
     }
     GpuMat temp = GpuMat(3, 3, CV_32FC1);
@@ -360,6 +360,7 @@ int extractGPUFlows(const string input_name, const string img_format, const stri
     Ptr<cuda::OpticalFlowDual_TVL1> tvl1 = cuda::OpticalFlowDual_TVL1::create();
 
     // Open video file
+    string input_name = input_dir + img_format;
     VideoCapture cap(input_name);
     double cap_fourcc = cap.get(CV_CAP_PROP_FOURCC);
     if(cap.isOpened())
@@ -456,7 +457,7 @@ int extractGPUFlows(const string input_name, const string img_format, const stri
     }
 }
 
-int extractCPUFlows(const string input_name, const string img_format,
+int extractCPUFlows(const string input_dir, const string img_format,
 		    const string out_dir, const string proc_type,
                     string output_mm, const int interval_beg, int interval_end,
                     const bool visualize, const bool silence)
@@ -466,6 +467,7 @@ int extractCPUFlows(const string input_name, const string img_format,
     char name[200];
     vector<vector<double> > mm;
     
+    string input_name = input_dir + img_format;
     if(!silence)
     {
         cout << "Extracting flow from [" << input_name << "] using CPU." << endl;
