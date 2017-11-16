@@ -184,11 +184,11 @@ static void computeFlowMagnitude(const Mat_<float>& flowx, const Mat_<float>& fl
 }
 
 /* Write raw optical flow values into txt file
-Example usage:
-    writeFlowRaw<float>(name+"_x_raw.txt", flowx);
-    writeFlowRaw<int>(name+"_x_raw_n.txt", flowx_n);
-*/
-template <typename T>
+   Example usage:
+   writeFlowRaw<float>(name+"_x_raw.txt", flowx);
+   writeFlowRaw<int>(name+"_x_raw_n.txt", flowx_n);
+   */
+    template <typename T>
 static void writeFlowRaw(string name, const Mat& flow)
 {
     ofstream file;
@@ -336,14 +336,14 @@ static vector<double> writeFlowJpg(string name, const Mat& d_flow)
 }
 
 int extractGPUFlows(const string input_dir, const string img_format, const string out_dir, const string proc_type,
-                    string output_mm, const int interval_beg, int interval_end,
-                    const bool visualize, const bool silence)
+        string output_mm, const int interval_beg, int interval_end,
+        const bool visualize, const bool silence)
 {
     // Declare useful variables
     Mat frame0, frame1;
     char name[200];
     vector<vector<double> > mm;
-    
+
     // VIDEO INPUT
     if (!silence)
     {
@@ -391,11 +391,11 @@ int extractGPUFlows(const string input_dir, const string img_format, const strin
         // For each frame in video (starting from the 2nd)
         for(int k=1; k<interval_end-interval_beg+1; k++)
         {
-	    // Remove extension
-	    size_t ext_idx = img_format.find_last_of(".");
+            // Remove extension
+            size_t ext_idx = img_format.find_last_of(".");
             string img_prefix = img_format.substr(0, ext_idx);
             sprintf(name, (string("%s") + img_prefix).c_str(), out_dir.c_str(), k+interval_beg-1);
-            
+
             bool bSuccess = cap.read(frame1);
             //imshow("Frame", frame1);
             //waitKey();
@@ -438,7 +438,7 @@ int extractGPUFlows(const string input_dir, const string img_format, const strin
                     showFlow("Flow", g_flow);
                     waitKey(30);
                 }
-            
+
                 mm.push_back(mm_frame);
                 frame1.copyTo(frame0);
             }
@@ -458,21 +458,21 @@ int extractGPUFlows(const string input_dir, const string img_format, const strin
 }
 
 int extractCPUFlows(const string input_dir, const string img_format,
-		    const string out_dir, const string proc_type,
-                    string output_mm, const int interval_beg, int interval_end,
-                    const bool visualize, const bool silence)
+        const string out_dir, const string proc_type,
+        string output_mm, const int interval_beg, int interval_end,
+        const bool visualize, const bool silence)
 {
     // Declare useful variables
     Mat frame0, frame1;
     char name[200];
     vector<vector<double> > mm;
-    
+
     string input_name = input_dir + img_format;
     if(!silence)
     {
         cout << "Extracting flow from [" << input_name << "] using CPU." << endl;
     }
-    
+
     VideoCapture cap(input_name);
     if(cap.isOpened())
     {
@@ -497,7 +497,7 @@ int extractCPUFlows(const string input_dir, const string img_format,
         // For each frame in video (starting from the 2nd)
         for(int k=1; k<interval_end-interval_beg+1; k++)
         {
-	    size_t ext_idx = img_format.find_last_of(".");
+            size_t ext_idx = img_format.find_last_of(".");
             string img_prefix = img_format.substr(0, ext_idx);
             sprintf(name, (string("%s") + img_prefix).c_str(), out_dir.c_str(), k+interval_beg-1);
             bool bSuccess = cap.read(frame1);
@@ -521,9 +521,9 @@ int extractCPUFlows(const string input_dir, const string img_format,
                 // Prepare receiving variable
                 Mat flow = Mat(frame0.size(), CV_32FC2);
 
-                calcOpticalFlowFarneback(frame0, frame1, flow, 0.5, 3, 3, 3, 5, 1.1, 0);  
+                calcOpticalFlowFarneback(frame0, frame1, flow, 0.5, 3, 3, 3, 5, 1.1, 0);
                 vector<double> mm_frame = writeFlowJpg(name, flow);
-                
+
                 if(visualize)
                 {
                     showFlow("Flow", flow);
