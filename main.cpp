@@ -30,15 +30,14 @@ int main(int argc, const char* argv[])
         "-n \t<nested> \t [0] \t whether to go through first level nested dirs \n"
         "-f \t<img_format> \t [%05d.jpg|video.avi] \t image format of input\n"
         "\n"
-        "Notes:\n*GPU method: Brox, CPU method: Farneback.\n"
         "*Only <imagename>_%0xd.jpg (x any digit) is supported for image sequence input.\n\n\n";
-// brox cpu
-//fourcc check for image sequence detection, but not sure
+    // brox cpu
+    //fourcc check for image sequence detection, but not sure
     int option_char;
     while ((option_char = getopt(argc, (char **)argv, "hp:o:b:e:m:n:f:s:v:?")) != EOF)
     {
         switch (option_char)
-        {  
+        {
             case 'p': proc_type      = optarg;       break;
             case 'o': out_dir        = optarg;       break;
             case 'b': interval_beg   = atoi(optarg); break;
@@ -47,7 +46,7 @@ int main(int argc, const char* argv[])
             case 's': silence        = atoi(optarg); break;
             case 'm': output_mm      = optarg;       break;
             case 'n': nested         = atoi(optarg); break;
-	    case 'f': img_format         = optarg; break;
+            case 'f': img_format         = optarg; break;
             case 'h': cout << help; return 0;        break;
             case '?': fprintf(stderr, "Unknown option.\nUSAGE: %s %s\n", argv[0], usage); return -1; break;
         }
@@ -63,7 +62,7 @@ int main(int argc, const char* argv[])
         input_dir = argv[argc-1];
     }
 
-    if(out_dir.compare("") != 0) 
+    if(out_dir.compare("") != 0)
     {
         if(out_dir[out_dir.length()-1]!= '/') { out_dir = out_dir + "/"; } //and if last char not /
         char cmd[200];
@@ -77,13 +76,13 @@ int main(int argc, const char* argv[])
     // Ensure that folder name ends with '/'
     if(input_dir[input_dir.length()-1]!= '/')
     {
-	    input_dir = input_dir + "/"; 
+        input_dir = input_dir + "/";
     } //and if last char not /
     if(nested == 1)
     {
         vector<string> files;
         getdir(input_dir, files);
-	cout << input_dir << endl;
+        cout << input_dir << endl;
         cout << "Extracting " <<  files.size() << " videos" << endl;
         // Go through inner folders
         for(int i=0; i < files.size(); i++)
@@ -97,10 +96,10 @@ int main(int argc, const char* argv[])
             if((proc_type.compare("tvl1") == 0) || (proc_type.compare("brox") == 0))
             {
                 int extract_success = extractGPUFlows(input_dir, img_format,
-						      video_output,
-                                                  proc_type, output_mm,
-                                                  interval_beg, interval_end,
-                                                  visualize, silence);
+                        video_output,
+                        proc_type, output_mm,
+                        interval_beg, interval_end,
+                        visualize, silence);
                 if(extract_success == 1)
                 {
                     cout << "Failed reading video file" << video << endl;
@@ -110,10 +109,10 @@ int main(int argc, const char* argv[])
             else if(proc_type.compare("farn") == 0)
             {
                 int extract_success = extractCPUFlows(input_dir, img_format,
-			                        	video_output,
-                                                  proc_type, output_mm,
-                                                  interval_beg, interval_end,
-                                                  visualize, silence);
+                        video_output,
+                        proc_type, output_mm,
+                        interval_beg, interval_end,
+                        visualize, silence);
                 if(extract_success == 1)
                 {
                     cout << "Failed reading video file " << video << endl;
@@ -132,9 +131,9 @@ int main(int argc, const char* argv[])
         if((proc_type.compare("tvl1") == 0) || (proc_type.compare("brox") == 0))
         {
             int extract_success = extractGPUFlows(input_dir, img_format, out_dir,
-                                              proc_type, output_mm,
-                                              interval_beg, interval_end,
-                                              visualize, silence);
+                    proc_type, output_mm,
+                    interval_beg, interval_end,
+                    visualize, silence);
             if(extract_success == 1)
             {
                 cout << "Failed extracting flow from " << input_dir << endl;
@@ -144,10 +143,10 @@ int main(int argc, const char* argv[])
         else if(proc_type.compare("farn") == 0)
         {
             int extract_success = extractCPUFlows(input_dir, img_format,
-			                          out_dir,
-                                                  proc_type, output_mm,
-                                                  interval_beg, interval_end,
-                                                  visualize, silence);
+                    out_dir,
+                    proc_type, output_mm,
+                    interval_beg, interval_end,
+                    visualize, silence);
             if(extract_success == 1)
             {
                 cout << "Failed extracting flow from " << input_dir << endl;
